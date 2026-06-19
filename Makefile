@@ -1,7 +1,10 @@
-asm: asmblr.tcl
-	./asmblr.tcl
+asm: asm.tcl
+	./asm.tcl
 	hexdump -C out.bin
 
 vm: vm.c
 	gcc vm.c -o vm
 	./vm
+
+clean:
+	rm vm out.bin
