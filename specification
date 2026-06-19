@@ -1,38 +1,70 @@
-32-bit Forth Operating System
+32-bit FORTH OPERATING SYSTEM
 
-31 30 29 28 27 26 25 24
-23 22 21 20 19 18 17 16
-15 14 13 12 11 10 09 08
-07 06 05 04 03 02 01 00
 
-nop			no operation
-	jump		jump thru I
-	call		jump thru I, push P to R
-;	return		jump thru R (destructive)
-ex	execute		jump thru R, save P in R
-next			if R is non-zero, jump thru I and decr R
-			if R is zero, pop R
-if			if T is zero, jump thru I
--if			if T is non-neg, jump thru I
-	literal		fetch thru P, incr P
-@			fetch thru A
-@+			fetch thru A, incr A
-!			store thru A
-!+			store thru A, incr A
-2*			shift T left
-2/			shift T right
-not			invert T
-and			bitwise and of S and T
-xor			bitwise exclusive-or of S and T
-or			bitwise 
-+			add S to T (discard S)
--			sub S by T (discard T)
-*			multiply S to T (thus S is lsb and T is msb)
-/			divide S by T (thus S is quot and T is rem)
-drop			discard T
-dup			duplicate T
-over			fetch S (non-destructive)
-a			fetch A (non-destructive)
-pop			fetch R (destructive)
-push			push T into R
-a!			store into A
+Opcodes are byte sized (8 bits), with 4 slots per 32 bit "cell".
+
+Immediates, address jumps, etc. takes up a whole cell.
+
+A page (4096 bytes, 4KiB) are allocated for each data stack and return stack.
+
+A - address / free register
+P - program counter
+I - instruction word
+T - top word of data stack
+S - second word of data stack
+R - top word of return stack
+
+The interpreter fetches I (instruction word) via P (program counter) and
+executes the opcodes from the LSB (least significant byte) to the MSB (most
+significant byte).
+
+There are 256 opcodes avaliable, however only 32 are used so far
+
+NULL INSTRUCTION
+0x00 nop	no operation
+
+JUMP INSTRUCTIONS
+0x01 jump	jump thru I
+0x02 call	jump thru I, push P to R
+0x03 exit	jump thru R, discard R
+0x04 if		if T is zero, jump thru I
+0x05 -if	if T is positive, jump thru I
+0x06 next	if R is non-zero, jump thru I and decr R; else skip I and pop R
+
+MEMORY INSTRUCTIONS
+0x07 lit	fetch thru P, incr P
+0x08 @		fetch cell thru A
+0x09 !		store cell thru A
+0x0a c@		fetch byte thru A
+0x0b c!		store byte thru A
+0x0c a+		incr A
+
+ALU INSTRUCTIONS
+0x0d 2*		shift T left
+0x0e 2/		shift T right
+0x0f not	not of T
+0x10 and	and of S and T
+0x11 xor	exclusive-or of S and T
+0x12 or		or of S and T
+0x13 +		add S by T (discard T)
+0x14 -		sub S by T (discard T)
+0x15 *		mul S by T (S is lsb and T is msb)
+0x16 /		div S by T (S is rem and T is quot)
+
+STACK INSTRUCTIONS
+0x17 drop	discard T
+0x18 dup	duplicate T
+0x19 over	duplicate S
+0x1a swap	swap S and T
+0x1b pop	pop R into T
+0x1c push	push T into R
+0x1d a		fetch A
+0x1e a!		store into A
+
+OTHER INSTRUCTION	
+0x1f sys	system call
+
+
+System Calls
+0	emit	spit char to output stream
+1	key?	poll for char from input stream
