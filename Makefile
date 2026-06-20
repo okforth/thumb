@@ -1,8 +1,6 @@
-asm: asm.tcl
+default: asm.tcl
 	./asm.tcl
 	hexdump -C out.bin
-
-vm: vm.c
 	gcc vm.c -o vm
 	./vm
 
