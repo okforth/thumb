@@ -1,3 +1,5 @@
+237 237 sys
+
 def drop	drop exit
 def dup		dup exit
 def ?dup	dup if dup then exit

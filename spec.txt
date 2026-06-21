@@ -70,3 +70,11 @@ OTHER INSTRUCTION
 System Calls
 0	emit	spit char to output stream
 1	key?	poll for char from input stream
+
+
+-- MEMORY LAYOUT --
+kernel/dictionary	 2 MiB
+data stack		 4 KiB / 1024 cells
+return stack		 4 KiB / 1024 cells
+block storage		 1 MiB / 1024 blocks
+user application space	60 MiB
