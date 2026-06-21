@@ -8,9 +8,7 @@ set RESET "\033\[0m"
 set map {
 	nop	0x00
 	jump	0x01
-	call	0x02
-	exit	0x03
-	if	0x04
+	call	0x02 exit	0x03 if	0x04
 	-if	0x05
 	next	0x06
 	lit	0x07
@@ -48,6 +46,11 @@ close $in
 # write output binary file
 set out [open "out.bin" wb]
 fconfigure $out -translation binary -encoding binary
+
+# pad output file to 64MiB
+set target_size [expr 64 * 1024 * 1024]
+seek $out [expr $target_size - 1] start
+puts -nonewline $out "\x00"
 
 proc write_byte {fh pos value} {
 	seek $fh $pos start ;# set position in file
