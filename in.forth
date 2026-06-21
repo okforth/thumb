@@ -1,35 +1,21 @@
-nop
+def drop	drop exit
+def dup		dup exit
+def ?dup	dup if dup then exit
+def nip		push drop pop exit
+def over	over exit
 
-jump call exit exit
 
-1 2 3 4
-
+align
+," hello, world!"
+,' 170 187 204'
 if
 
--if
-next
+170 187 204
 
-lit
-@
-!
-c@ c! a+
+then
 
-2*
-2/
-1
-not
-2
-and
-xor
-or
-+ -
- * /
-
-drop
-dup   over
-   swap
-pop
-	push
-a a!
+1 -if 170 then
 
 sys
+
+nop jump call exit next lit @ ! c@ c! a+ 2* 2/ not and xor or + - * / drop dup   over swap pop push a a!  sys
