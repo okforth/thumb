@@ -29,7 +29,8 @@ uint8_t op;
 uint32_t addr;
 
 void status() {
-	printf("pc: %X\top: %X\n", pc, op);
+	printf("pc: %8X\tI: %8X\top: %8X\tT: %8X\tR: %8X\n",
+		 pc, word, op, *dstack, *rstack);
 }
 
 uint32_t fetch(uint32_t x) {
@@ -96,8 +97,7 @@ int execute() {
 			break;
 
 		case 0x06: // next
-			if (*rstack != 0) {
-				(*rstack)--;
+			if (--*rstack != 0) {
 				pc = fetch(pc);
 				slot = 4;
 			} else {
@@ -229,6 +229,9 @@ int execute() {
 				case 1:
 					dpush(getchar());
 					break;
+				case -1:
+					printf("Exit success!\n");
+					return 1;
 				default:
 					printf("Invalid system call.\n");
 					return 1;
