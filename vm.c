@@ -252,7 +252,6 @@ void interpret() {
 		slot = 0;
 		while (slot < 4) {
 			op = (uint8_t) (word >> (8 * slot++));
-			status();
 			if (execute()) return;
 		}
 	}

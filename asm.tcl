@@ -102,6 +102,8 @@ set count 0 ;# dwords count
 set addr_stack {} ;# address stack
 set dict_stack 0 ;# dictionary stack
 
+set dict_list {} ;# defined terms
+
 set word_index 0
 set word_count [llength $words]
 
@@ -129,6 +131,11 @@ while {$word_index < $word_count} {
 		continue
 	}
 
+	# ascii literals
+	if {[regexp {^'(.){1}'$} $word -> char]} {
+		scan $char %c word ;# convert to a number literal
+	}
+
 	# number literals: decimal, hexadecimal, etc.
 	if {[string is entier -strict $word]} {
 		write_byte $out $pos [scan_opcode $map "lit"]
@@ -144,7 +151,7 @@ while {$word_index < $word_count} {
 		continue
 	}
 
-	if {$word eq "if" || $word eq "-if"} {
+	if {$word eq "if" || $word eq "-if" || $word eq "jump"} {
 		write_byte $out $pos [scan_opcode $map $word]
 		incr pos
 		set dpos [expr $pos + [dword_offset $pos]]
@@ -158,6 +165,21 @@ while {$word_index < $word_count} {
 		continue
 	}
 
+	if {$word eq "else"} {
+		write_byte $out $pos [scan_opcode $map jump]
+		incr pos
+		incr pos [dword_offset $pos]
+		while {$count > 0} {
+			incr pos 4
+			incr count -1
+		}
+		set addr [pop addr_stack]
+		push addr_stack $pos
+		incr pos 4
+		write_dword $out $addr $pos
+		continue
+	}
+
 	if {$word eq "then"} {
 		# skip past any compiled code
 		incr pos [dword_offset $pos]
@@ -165,7 +187,6 @@ while {$word_index < $word_count} {
 			incr pos 4
 			incr count -1
 		}
-
 		set addr [pop addr_stack]
 		write_dword $out $addr $pos
 		continue
@@ -220,12 +241,15 @@ while {$word_index < $word_count} {
 		write_dword $out $pos [pop dict_stack]
 		incr pos 4
 		push dict_stack $pos
+
+		lappend dict_list $word $pos
 		continue
 	}
 
 	# compile ';' as exit
 	if {$word eq ";"} {
 		write_byte $out $pos [scan_opcode $map exit]
+		incr pos
 		continue
 	}
 
@@ -236,114 +260,23 @@ while {$word_index < $word_count} {
 		continue
 	}
 
+	# compile call to a defined word
+	if {[dict exists $dict_list $word]} {
+		set addr [dict get $dict_list $word]
+		write_byte $out $pos [scan_opcode $map call]
+		incr pos
+		incr pos [dword_offset $pos]
+		while {$count > 0} {
+			incr pos 4
+			incr count -1
+		}
+		write_dword $out $pos $addr
+		incr pos 4
+		continue
+	}
+
 	error "${RED}Compiler error: >>>$word<<< not found!/${RESET}"
 	break
 }
-
-# while {$i < $total_words} {
-# 	set word [lindex $words $i]
-# 	# update position to skip literals/addresses filled
-# 	if {[dword_offset $pos] == 0} {
-# 		while {$count > 0} {
-# 			incr pos 4
-# 			incr count -1
-# 		}
-# 	}
-# 	# number literals
-# 	if {[string is integer -strict $word]} {
-# 		write_byte $out $pos [scan_opcode $map lit]
-# 		incr pos
-# 		set dpos [expr $pos + [dword_offset $pos]]
-# 		set temp $count
-# 		incr count
-# 		while {$temp > 0} {
-# 			incr dpos 4
-# 			incr temp -1
-# 		}
-# 		write_dword $out $dpos $word
-# 	# if conditionals
-# 	} elseif {$word eq "if" || $word eq "-if"} {
-# 		write_byte $out $pos [scan_opcode $map $word]
-# 		incr pos
-# 		set dpos [expr $pos + [dword_offset $pos]]
-# 		set temp $count
-# 		incr count
-# 		while {$temp > 0} {
-# 			incr dpos 4
-# 			incr temp -1
-# 		}
-# 		push stack $dpos
-# 	# then
-# 	} elseif {$word eq "then"} {
-# 		incr pos [dword_offset $pos]
-# 		while {$count > 0} {
-# 			incr pos 4
-# 			incr count -1
-# 		}
-# 		set addr [pop stack]
-# 		write_dword $out $addr $pos
-# 	# remaining words
-# 	} elseif {[dict exists $map $word]} {
-# 		write_byte $out $pos [scan_opcode $map $word]
-# 		incr pos
-# 	} elseif {$word eq "align"} {
-# 		incr pos [dword_offset $pos]
-# 	} elseif {$word eq ",\""} {
-# 		incr i
-# 		set fill {}
-# 		while {true} {
-# 			set word [lindex $words $i]
-# 			set last [string index $word end]
-# 			if {$last eq "\""} {
-# 				lappend fill [string range $word 0 end-1]
-# 				set len [string length $fill]
-# 				write_string $out $pos $fill
-# 				incr pos $len
-# 				break
-# 			}
-# 			lappend fill $word
-# 			incr i
-# 		}
-# 	} elseif {$word eq ",'"} {
-# 		incr i
-# 		while {true} {
-# 			set word [lindex $words $i]
-# 			set last [string index $word end]
-# 			if {$last eq "'"} {
-# 				set word [string range $word 0 end-1]
-# 				if {[string is integer -strict $word]} {
-# 					write_byte $out $pos $word
-# 					incr pos
-# 					break
-# 				} else {
-# 					error "${RED}Compiler error: >>>$word<<< not a number!${RESET}"
-# 				}
-# 			}
-# 			if {[string is integer -strict $word]} {
-# 				write_byte $out $pos $word
-# 				incr pos
-# 			} else {
-# 				error "${RED}Compiler error: >>>$word<<< not a number!${RESET}"
-# 			}
-# 			incr i
-# 		}
-# 	} elseif {$word eq "def"} {
-# 		incr i
-# 		set word [lindex $words $i]
-# 		set last [string index $word end]
-# 		set len [string length $word]
-# 		incr pos [dword_offset [expr $pos + $len + 1]]
-# 		write_string $out $pos $word
-# 		incr pos $len
-# 		write_byte $out $pos $len
-# 		incr pos
-# 		write_dword $out $pos [pop fstack]
-# 		incr pos 4
-# 		push fstack $pos
-# 	} else {
-# 		error "${RED}Compiler error: >>>$word<<< not found!/${RESET}"
-# 	}
-# 	incr i
-# }
 
 close $out
