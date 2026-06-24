@@ -88,7 +88,7 @@ int execute() {
 			
 		case 0x05: // -if
 			x = dpop();
-			if (x < 0) {
+			if ((int32_t) x < 0) {
 				pc += 4;
 			} else {
 				pc = fetch(pc);

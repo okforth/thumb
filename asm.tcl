@@ -120,6 +120,7 @@ while {$word_index < $word_count} {
 	set word [lindex $words $word_index]
 	incr word_index
 
+	# comments
 	if {$word eq "("} {
 		while {$word_index < $word_count} {
 			set word [lindex $words $word_index]
@@ -173,10 +174,10 @@ while {$word_index < $word_count} {
 			incr pos 4
 			incr count -1
 		}
-		set addr [pop addr_stack]
-		push addr_stack $pos
+		set addr [pop addr_stack] ;# retrieve 'if' address from stack
+		push addr_stack $pos ;# store 'else' address to stack
 		incr pos 4
-		write_dword $out $addr $pos
+		write_dword $out $addr $pos ;# write to 'if' address
 		continue
 	}
 

@@ -1,7 +1,5 @@
 jump
 
-( -- DICTIONARY -- )
-
 : drop drop ;
 : dup dup ;
 : swap swap ;
@@ -14,19 +12,26 @@ jump
 : 2drop drop drop ;
 : 2dup over over ;
 
+: i pop pop dup push swap push ;
+
+: emit ( char -- ) 0 sys ;
+: neg ( n -- n+1 ) not 1 + ;
+
 : = ( a b -- f )
   - -1 swap if not then
 ;
 
-: digit ( n -- )
-  10 /
-  dup if digit else drop then
-  '0' + 0 sys
-;
+: digit ( n -- ) 10 / dup if digit else drop then '0' + 0 sys ;
+: space ( -- ) 32 emit ;
+: . ( n -- ) dup -if neg '-' emit then digit space ;
+
+: cr ( -- ) 10 0 sys ;
+
+: end -1 sys ;
 
 then
 
-100 digit 10 0 sys
-
+237 12 / . . cr
+19 12 * drop .
 
 -1 sys
