@@ -31,7 +31,9 @@ jump
 
 then
 
-237 12 / . . cr
-19 12 * drop .
+19 . 12 .
+'*' emit space
+'.' emit space
+19 12 * drop . cr
 
 -1 sys

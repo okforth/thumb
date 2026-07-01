@@ -47,7 +47,7 @@ close $in
 
 # write output binary file
 set out [open "out.bin" wb]
-fconfigure $out -translation binary -encoding binary
+fconfigure $out -translation binary ;#-encoding binary
 
 # pad output file to 64MiB
 set target_size [expr 64 * 1024 * 1024]

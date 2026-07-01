@@ -168,15 +168,16 @@ int execute() {
 			*dstack -= x;
 			break;
 
-		case 0x15: // *
+		case 0x15: { // *
 			int64_t a = (int64_t) *(dstack - 1);
 			int64_t b = (int64_t) *dstack;
 			uint64_t product = (uint64_t) (a * b);
 			*(dstack - 1) = (uint32_t) product;
 			*dstack = (uint32_t) (product >> 32);
 			break;
+		}
 
-		case 0x16: // /
+		case 0x16: { // /
 			int32_t dividend = (int32_t) *(dstack - 1);
 			int32_t divisor = (int32_t) *dstack;
 			int32_t quotient = dividend / divisor;
@@ -184,6 +185,7 @@ int execute() {
 			*(dstack - 1) = (uint32_t) remainder;
 			*dstack = (uint32_t) quotient;
 			break;
+		}
 
 		case 0x17: // drop
 			dstack--;
@@ -258,7 +260,7 @@ void interpret() {
 }
 
 
-uint8_t *filename = "out.bin";
+const char *filename = "out.bin";
 
 void read_file() {
 	/* open file */
