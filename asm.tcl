@@ -27,8 +27,8 @@ set map {
 	or	0x12
 	+	0x13
 	-	0x14
-	*	0x15
-	/	0x16
+	m*	0x15
+	/mod	0x16
 	drop	0x17
 	dup	0x18
 	over	0x19
@@ -46,7 +46,7 @@ set words [read $in]
 close $in
 
 # write output binary file
-set out [open "out.bin" wb]
+set out [open "out.bin" w+b]
 fconfigure $out -translation binary ;#-encoding binary
 
 # pad output file to 64MiB
@@ -56,7 +56,7 @@ puts -nonewline $out "\x00"
 
 proc write_byte {fh pos value} {
 	seek $fh $pos start ;# set position in file
-	puts -nonewline $fh [binary format c $value]
+	puts -nonewline $fh [binary format cu $value]
 }
 
 proc write_dword {fh pos value} {
@@ -76,6 +76,12 @@ proc dword_offset {pos} {
 proc scan_opcode {map word} {
 	scan [dict get $map $word] %x value
 	return $value
+}
+
+proc read_byte {fh pos} {
+	seek $fh $pos start ;# set position in file
+	binary scan [read $fh 1] cu byte
+	return $byte
 }
 
 # set pos [tell $out] ;# fetch current position in file
@@ -177,7 +183,7 @@ while {$word_index < $word_count} {
 		set addr [pop addr_stack] ;# retrieve 'if' address from stack
 		push addr_stack $pos ;# store 'else' address to stack
 		incr pos 4
-		write_dword $out $addr $pos ;# write to 'if' address
+		write_dword $out $addr [expr $pos - $addr] ;# write to 'if' address
 		continue
 	}
 
@@ -189,7 +195,7 @@ while {$word_index < $word_count} {
 			incr count -1
 		}
 		set addr [pop addr_stack]
-		write_dword $out $addr $pos
+		write_dword $out $addr [expr $pos - $addr]
 		continue
 	} 
 
@@ -217,7 +223,7 @@ while {$word_index < $word_count} {
 			incr skip -1
 		}
 		set addr [pop addr_stack]
-		write_dword $out $dpos $addr
+		write_dword $out $dpos [expr $addr - $dpos]
 		continue
 	}
 
@@ -234,12 +240,12 @@ while {$word_index < $word_count} {
 		set word [lindex $words $word_index]
 		incr word_index
 		set len [string length $word]
-		incr pos [dword_offset [expr $len + 1]]
-		write_string $out $pos $word
+		incr pos [dword_offset [expr $len + 3]]
+		write_string $out $pos $word		;# name
 		incr pos $len
-		write_byte $out $pos $len
-		incr pos
-		write_dword $out $pos [pop dict_stack]
+		write_byte $out $pos $len		;# name length
+		incr pos 3				;# skip payload length and flags
+		write_dword $out $pos [pop dict_stack]	;# link
 		incr pos 4
 		push dict_stack $pos
 
@@ -249,8 +255,34 @@ while {$word_index < $word_count} {
 
 	# compile ';' as exit
 	if {$word eq ";"} {
+		# skip ahead of literals and addresses
+		while {$count > 0} {
+			incr pos [dword_offset $pos]
+			incr pos 4
+			incr count -1
+		}
+
+		# fetch latest defined word
+		set word [lindex [dict keys $dict_list] end]
+		set addr [dict get $dict_list $word]	;# addr of payload content
+		set len [expr $pos - $addr]		;# length of payload
+		incr addr -6				;# addr of payload length
+		write_byte $out $addr $len
+
+		# compile exit from word
 		write_byte $out $pos [scan_opcode $map exit]
 		incr pos
+		continue
+	}
+
+	# set flag of lastest defined word as inlined
+	if {$word eq "inline"} {
+		set word [lindex [dict keys $dict_list] end]
+		set addr [dict get $dict_list $word]
+		incr addr -5 ;# position of flags
+		set byte [read_byte $out $addr]
+		set byte [expr {$byte ^ 0x40}] ;# flip 7th bit
+		write_byte $out $addr $byte
 		continue
 	}
 
@@ -261,9 +293,44 @@ while {$word_index < $word_count} {
 		continue
 	}
 
-	# compile call to a defined word
+	# compile defined word
 	if {[dict exists $dict_list $word]} {
 		set addr [dict get $dict_list $word]
+		set flags [read_byte $out [expr {$addr - 5}]]
+		set len   [read_byte $out [expr {$addr - 6}]]
+		set flag [expr {$flags & 0x40}] ;# filter for inline flag
+
+		# compiled as inlined word
+		if {$flag != 0} {
+			# 1 byte words
+			if {$len == 1} {
+				write_byte $out $pos [read_byte $out $addr]
+				incr pos
+				continue
+			}
+
+			# n bytes words: skip any immediates, addresses
+			incr pos [dword_offset $pos]
+			while {$count > 0} {
+				incr pos 4
+				incr count -1
+			}
+
+			while {$len} {
+				set byte [read_byte $out $addr]
+				# ignore exit/return for inlined words
+				if {$byte == [scan_opcode $map exit]} {
+					set byte [scan_opcode $map nop]
+				}
+				write_byte $out $pos $byte
+				incr addr
+				incr pos
+				incr len -1
+			}
+			continue
+		}
+
+		# compile as call to word
 		write_byte $out $pos [scan_opcode $map call]
 		incr pos
 		incr pos [dword_offset $pos]
@@ -271,7 +338,7 @@ while {$word_index < $word_count} {
 			incr pos 4
 			incr count -1
 		}
-		write_dword $out $pos $addr
+		write_dword $out $pos [expr $addr - $pos]
 		incr pos 4
 		continue
 	}

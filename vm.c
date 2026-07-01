@@ -1,3 +1,4 @@
+#include <stdalign.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -18,7 +19,7 @@
 #define POS_USER   KERNEL+DSTACK+RSTACK+BLOCK
 
 
-uint8_t mem[SIZE];
+alignas(4) uint8_t mem[SIZE];
 uint32_t *dstack = ((uint32_t*) (mem + POS_DSTACK)) - 1;
 uint32_t *rstack = ((uint32_t*) (mem + POS_RSTACK)) - 1;
 
@@ -61,13 +62,13 @@ int execute() {
 			break;
 
 		case 0x01: // jump
-			pc = fetch(pc);
+			pc += fetch(pc);
 			slot = 4;
 			break;
 
 		case 0x02: // call
 			rpush(pc + 4);
-			pc = fetch(pc);
+			pc += fetch(pc);
 			slot = 4;
 			break;
 
@@ -81,7 +82,7 @@ int execute() {
 			if (x != 0) {
 				pc += 4;
 			} else {
-				pc = fetch(pc);
+				pc += fetch(pc);
 				slot = 4;
 			}
 			break;
@@ -91,14 +92,14 @@ int execute() {
 			if ((int32_t) x < 0) {
 				pc += 4;
 			} else {
-				pc = fetch(pc);
+				pc += fetch(pc);
 				slot = 4;
 			}
 			break;
 
 		case 0x06: // next
 			if (--*rstack != 0) {
-				pc = fetch(pc);
+				pc += fetch(pc);
 				slot = 4;
 			} else {
 				rpop();

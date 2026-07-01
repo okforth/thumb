@@ -1,8 +1,9 @@
-default: asm.tcl
+run: asm.tcl vm.c
 	./asm.tcl
-	hexdump -C out.bin
 	gcc vm.c -o machine
 	./machine
+
+debug: run
 	hexdump -C out.bin
 
 clean:
