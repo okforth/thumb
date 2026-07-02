@@ -45,7 +45,7 @@ jump
 : 2dup ( a b -- a b a b ) over over ; inline
 
 ( RETURN STACK )
-: r ( -- n ) pop dup push ; inline
+: peek ( -- n ) pop dup push ; inline
 : rdrop ( -- ) pop drop ; inline
 
 ( LOGIC )
@@ -58,23 +58,14 @@ jump
 : 0>= ( a -- f ) not 0 swap -if not then ;
 
 ( ARITHMETIC / BITS )
-: + ( a b -- a+b ) + ; inline
-: - ( a b -- a-b ) - ; inline
 : -^ ( a b -- b-a ) swap - ; inline
-: m* ( a b -- low high ) m* ; inline
 : * ( a b -- a*b ) m* drop ; inline
-: /mod ( a b -- quot rem ) /mod ; inline
 : / ( a b -- a/b ) /mod nip ; inline
 : mod ( a b -- a%b ) /mod drop ; inline
 : 1+ ( a -- a+1 ) 1 + ; inline
 : 1- ( a -- a-1 ) 1 - ; inline
-: 2* ( a -- a<<1 ) 2* ; inline
-: 2/ ( a -- a>>2 ) 2/ ; inline
 : lshift ( a b -- a<<b ) for 2* next ;
 : rshift ( a b -- a>>b ) for 2/ next ;
-: and ( a b -- a&b ) and ; inline
-: or ( a b -- a|b ) or ; inline
-; xor ( a b -- a^b ) xor ; inline
 : max ( a b -- hi ) 2dup < if nip else drop then ;
 : min ( a b -- lo ) 2dup > if nip else drop then ;
 : negate ( n -- -n ) not 1 + ; inline
@@ -89,10 +80,10 @@ jump
 : digit ( n -- ) 10 /mod dup if digit else drop then '0' + 0 sys ;
 : . ( n -- ) dup -if negate '-' emit then digit space ;
 
-: bye -1 sys ;
+: bye -1 sys ; inline
 
 then
 
-0 100 1 rshift drop
+-1234567890 .
 
 bye

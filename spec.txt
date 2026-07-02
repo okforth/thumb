@@ -83,8 +83,8 @@ user application space	60 MiB
 -- WORD LAYOUT --
 
 name		n bytes
-name length	1 byte		max 255 characters long
-payload length	1 byte		max 256 bytes longh
+name length	1 byte
+payload length	1 byte
 flags		1 byte		immediate, inline
 link		4 bytes
 payload		n bytes
