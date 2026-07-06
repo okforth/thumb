@@ -71,19 +71,18 @@ jump
 : negate ( n -- -n ) not 1 + ; inline
 
 
-
 : key ( char -- ) 1 sys ;
 : emit ( char -- ) 0 sys ;
 : cr ( -- ) 10 0 sys ;
 : space ( -- ) 32 emit ;
 
-: digit ( n -- ) 10 /mod dup if digit else drop then '0' + 0 sys ;
+: digit ( u -- ) 10 /mod dup if digit else drop then '0' + 0 sys ;
 : . ( n -- ) dup -if negate '-' emit then digit space ;
 
 : bye -1 sys ; inline
 
 then
 
--1234567890 .
+-237 .
 
 bye
